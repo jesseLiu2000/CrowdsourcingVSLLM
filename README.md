@@ -1,1 +1,3 @@
-# CrowdsourcingVSLLM
+# CrowdsourcingVSLLM  
+
+python main --t math
