@@ -11,26 +11,25 @@ import matplotlib.pyplot as plt
 
 class MathDealing():
     def __init__(self):
-        self.input_file_path = "../datasets/math/"
-        self.csv_file_path = "../datasets/math/math.csv"
-        self.data_file_path = "../datasets/math/math_data.json"
-        self.json_file_path = "../datasets/math/math.json"
-        self.jsonl_file_path = "../datasets/math/math.jsonl"
-        self.survey_data_1 = "../datasets/survey_data/math_2310_renew.csv"
-        self.survey_data_2 = "../datasets/survey_data/math_2310_renew.csv"
-        self.answer_path = "../datasets/math/answer.txt"
+        self.file_dict = "../master_project/datasets/math/"
+        self.data_file_path = "../master_project/datasets/math/math.json"
+        self.json_file_path = "../master_project/datasets/math/math_output.json"
+        self.jsonl_file_path = "../master_project/datasets/math/math.jsonl"
+        self.survey_data_1 = "../master_project/datasets/survey_data/math_2310_renew.csv"
+        self.survey_data_2 = "../master_project/datasets/survey_data/math_0811_renew.csv"
 
         self.REPLACE_WITH_SPACE = re.compile("(<br\s*/><br\s*/>)|(\-)|(\/)")
         self.NO_SPACE = ""
         self.SPACE = " "
 
     def _get_dataset(self):
-        return load_dataset("gsm8k", "main", split="test", cache_dir=self.input_file_path)
+        return load_dataset("gsm8k", "main", split="test", cache_dir=self.file_dict)
 
     def _preprocess_reviews(self, reviews):
         output = self.REPLACE_WITH_SPACE.sub(self.SPACE, reviews)
 
         return output
+
     def _deal_dataset(self):
         dataset_test_gsm8k = self._get_dataset()
         full_dict = {}
@@ -40,7 +39,7 @@ class MathDealing():
 
         for idx in range(len(input_text)):
             question_dict = {}
-            clean_text = self.preprocess_reviews(input_text[idx])
+            clean_text = self._preprocess_reviews(input_text[idx])
             question_dict['text'] = clean_text
             question_dict['answer'] = answer[idx]
 
@@ -74,7 +73,7 @@ class MathDealing():
                 while True:
                     num = completion.choices[0].message["content"]
                     output = self._is_number(num)
-                    if output != False:
+                    if output:
                         break
 
                 output = completion.choices[0].message["content"]
@@ -121,7 +120,7 @@ class MathDealing():
 
             task_dict[idx] = sentence_dict
 
-            with jsonlines.open(self.jsonl_file_path,'a') as writer:
+            with jsonlines.open(self.jsonl_file_path, 'a') as writer:
                 writer.write(sentence_dict)
 
         with open(self.json_file_path, 'w') as fw:
@@ -161,6 +160,7 @@ class MathDealing():
                     if not pd.isna(value):
                         answer_lst.append(answer)
                 question_dict[column_name] = answer_lst
+
         return question_dict
 
     def _gpt_score(self):
@@ -168,7 +168,7 @@ class MathDealing():
         incorrect = 0
         total = 0
 
-        with jsonlines.open(self.jsonl_file_path , 'r') as reader:
+        with jsonlines.open(self.jsonl_file_path, 'r') as reader:
             for line in reader.iter():
                 name = f"Question{line['idx']}"
                 output = line['output']
@@ -176,22 +176,23 @@ class MathDealing():
                 answer = line['answer'].split("#### ")[1]
                 if output != "$":
                     total += 1
-                    # print("output", output)
                     if output == answer:
                         correct += 1
                     else:
                         incorrect += 1
 
-        print("acc", correct / total)
+        print("GPT Accuracy is", correct / total)
+        return total, incorrect
 
     def human_score(self):
         question_dict = self._deal_survey()
-        answer_file = open(self.answer_path, "r")
-        answer = answer_file.readlines()
-        answer_lst = [i.split("\n#### ")[1] for i in answer]
+        answer_file = json.load(open(self.json_file_path, "r"))
+        question_id = [a.replace("Question", "") for a in list(question_dict.keys())]
+        answer_lst = [answer_file[i]['answer'].split("\n#### ")[1] for i in question_id]
         correct_rate_dict = {"1": [], "2": [], "3": [], "4": [], "5": []}
         correct_dict = {}
         total_number = 0
+        total_correct = 0
 
         for (key, answer) in zip(list(question_dict.keys()), answer_lst):
             correct_dict[key] = {}
@@ -199,9 +200,12 @@ class MathDealing():
             total_number += len(question_dict[key])
             nominator = len([i for i in question_dict[key] if i == answer])
             avg = nominator / len(question_dict[key]) if len(question_dict[key]) != 0 else 0
+            total_correct += nominator
             correct_dict[key]['correct_rate'] = avg
             correct_dict[key]['correct_number'] = nominator
             correct_dict[key]['false_number'] = len(question_dict[key]) - nominator
+
+        print("Human Accuracy is", total_correct / total_number)
 
         for question in list(correct_dict.keys()):
             correct_rate = correct_dict[question]['correct_rate']
@@ -215,12 +219,12 @@ class MathDealing():
                 correct_rate_dict["4"].append(question)
             elif correct_rate in [0.876, 1]:
                 correct_rate_dict["5"].append(question)
-        return correct_rate_dict
+        return correct_rate_dict, total_number, total_correct
 
     def plot(self):
-        correct_rate_dict = self.human_score()
-        title_lst = ["[0, 0.126]", "[0.126, 0.376]", "[0.376, 0.626]", "[0.626, 0.876]", "[0.876, 1]"]
-        for i in range(1, 5):
+        correct_rate_dict, total_number, total_correct = self.human_score()
+        title_lst = ["[0, 0.125]", "[0.125, 0.375]", "[0.375, 0.625]", "[0.625, 0.875]", "[0.875, 1]"]
+        for i in range(1, 6):
             correct = 0
             incorrect = 0
             total = 0
@@ -246,9 +250,30 @@ class MathDealing():
             plt.bar(categories, values, width=0.5)
             plt.xlabel('Values')
             plt.ylabel('Number')
-            plt.title(f'GPT(when human in {title_lst[i-1]}')
+            plt.title(f'GPT(when human in {title_lst[i - 1]}')
             plt.show()
 
+    def compare_plot(self):
+        correct_rate_dict, total_number_human, total_correct_human = self.human_score()
+        total_number_gpt, total_incorrect_gpt = self._gpt_score()
+        categories_human = ["Correct Number", "Incorrect Number"]
+        values_human = [total_number_human, total_number_human - total_correct_human]
 
+        categories_gpt = ["Correct Number", "Incorrect Number"]
+        values_gpt = [total_number_gpt / 2, total_incorrect_gpt / 2]
 
+        bar_width = 0.35
 
+        plt.bar(categories_human, values_human, width=bar_width, label='Human')
+        categories_gpt_adjusted = [x + bar_width for x in range(len(categories_gpt))]
+        plt.bar(categories_gpt_adjusted, values_gpt, width=bar_width, label='ChatGPT')
+
+        plt.xlabel('Values')
+        plt.ylabel('Number')
+        plt.title('Comparison of Human and GPT')
+        plt.legend()
+        plt.show()
+
+# if __name__ == '__main__':
+#     build_class = MathDealing()
+#     build_class.human_score()

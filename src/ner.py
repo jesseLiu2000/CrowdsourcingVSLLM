@@ -12,14 +12,15 @@ import matplotlib.pyplot as plt
 
 class NerDealing():
     def __init__(self):
-        self.input_file_path = "../datasets/ner/"
-        self.csv_file_path = "../datasets/ner/ner.csv"
-        self.json_file_path = "../datasets/ner/ner.json"
-        self.jsonl_file_path = "../datasets/ner/ner.jsonl"
-        self.survey_data = "../datasets/survey_data/ner_0811.csv"
+        self.file_dict = "../master_project/datasets/ner"
+        self.input_file_path = "../master_project/datasets/ner/ner.json"
+        self.csv_file_path = "../master_project/datasets/ner/ner.csv"
+        self.json_file_path = "../master_project/datasets/ner/ner_output.json"
+        self.jsonl_file_path = "../master_project/datasets/ner/ner.jsonl"
+        self.survey_data = "../master_project/datasets/survey_data/ner_0811.csv"
 
     def _get_dataset(self):
-        return load_dataset("conll2003", split="train", cache_dir=self.input_file_path)
+        return load_dataset("conll2003", split="train", cache_dir=self.file_dict)
 
     def _bio_to_list(self, bio_format):
         entity_list = []
@@ -104,6 +105,7 @@ class NerDealing():
         with open(self.json_file_path, 'w') as json_file:
             json.dump(full_dict, json_file, indent=4)
 
+    @staticmethod
     def _chatgpt(prompt):
         openai.api_key = "OPENAI KEY HERE"
         while True:
@@ -134,7 +136,7 @@ class NerDealing():
         return output
 
     def chatgpt_output(self):
-        file_read = open(self.data_file_path, 'r')
+        file_read = open(self.json_file_path, 'r')
         json_file = json.load(file_read)
         shot = """
         In the sentence below, extract required entities should be filled in the json format.
@@ -146,8 +148,6 @@ class NerDealing():
         Answer: {"organization named entity": ["Chamber of Economy"], "person named entity":["Kwasniewski","Janez Drnovsek"], "location named entity":["Slovenia"], "miscellaneous named entity":["Slovenian"]}\n"""
         keys_lst = list(json_file.keys())
         task_dict = {}
-        # start = keys_lst.index("8520")
-        # print(start)
 
         for idx in keys_lst:
             sentence_dict = {}
@@ -188,7 +188,7 @@ class NerDealing():
         lst3 = [value for value in lst1_modify if value in lst2]
         return len(lst3)
 
-    def _gpt_score(self):
+    def survey_deal(self):
         df = pd.read_csv(self.survey_data)
         column_names = df.columns.tolist()
 
@@ -205,7 +205,7 @@ class NerDealing():
 
         ner_dict = {'1': "ORG", '2': "PER", '3': "LOC", '4': "MISC"}
 
-        prefixes = set([q.rsplit('_', 1)[0] for q in column_names if q != 'Question5102'])
+        prefixes = set([q.rsplit('_', 1)[0] for q in column_names if q != 'Question5102' and q != 'Question4808'])
         combined_questions = [prefix for prefix in prefixes]
 
         length = start_position - end_position + 1
@@ -256,7 +256,7 @@ class NerDealing():
         return sentence_dict
 
     def huamn_plot(self):
-        sentence_dict = self._gpt_score()
+        sentence_dict = self.survey_deal()
         rec_lst = []
         pre_lst = []
         total_correct_answer_lst = []
@@ -393,8 +393,6 @@ class NerDealing():
             if answer_length != 0:
                 f1_lst.append(f1)
 
-                # break
-
             if org_answer != 0:
                 org_f1_lst.append(org_f1)
 
@@ -499,9 +497,8 @@ class NerDealing():
         return score_lst
 
     def gpt_plot(self):
-        import numpy as np
-        import jsonlines
-
+        sentence_dict = self.survey_deal()
+        sentence_keys = list(sentence_dict.keys())
         rec_lst = []
         pre_lst = []
         total_correct_answer_lst = []
@@ -541,71 +538,70 @@ class NerDealing():
 
         file_path = self.jsonl_file_path
         f = jsonlines.open(file_path)
-        # a = jsonlines.open(file_path)
 
-        # for line, answer_line in zip(f.iter(), a.iter()):
         for line in f.iter():
-            # print(line)
-            correct_answer = 0
-            org_correct = 0
-            per_correct = 0
-            loc_correct = 0
-            misc_correct = 0
-
-            answer = line["answer"]
-            predcit = line["output"]
-
-            # print(answer)
-            # print(predcit)
-
-            # assert answer_line["text"] == line["text"]
-
-            # print(predcit)
-            if predcit != {}:
-                # print(predcit)
-                # print(answer)
-                org_predict = len(predcit["ORG"]) if predcit["ORG"] != [''] else 0
-                loc_predict = len(predcit["LOC"]) if predcit["LOC"] != [''] else 0
-                per_predict = len(predcit["PER"]) if predcit["PER"] != [''] else 0
-                misc_predict = len(predcit["MISC"]) if predcit["MISC"] != [''] else 0
-
-                org_answer = len(answer["ORG"])
-                loc_answer = len(answer["LOC"])
-                per_answer = len(answer["PER"])
-                misc_answer = len(answer["MISC"])
-
-                org_correct = self._intersection_length(predcit["ORG"], answer["ORG"])
-                per_correct = self._intersection_length(predcit["PER"], answer["PER"])
-                loc_correct = self._intersection_length(predcit["LOC"], answer["LOC"])
-                misc_correct = self._intersection_length(predcit["MISC"], answer["MISC"])
-
-                predict_length = org_predict + loc_predict + per_predict + misc_predict
-                answer_length = org_answer + loc_answer + per_answer + misc_answer
-                correct_answer = org_correct + per_correct + loc_correct + misc_correct
-
-                # print("predict_length", loc_predict)
-                # print("answer_length", loc_answer)
-                # print("correct_answer", correct_answer)
-
-            else:
-                org_predict = 0
-                loc_predict = 0
-                per_predict = 0
-                misc_predict = 0
-
-                org_answer = len(answer["ORG"])
-                loc_answer = len(answer["LOC"])
-                per_answer = len(answer["PER"])
-                misc_answer = len(answer["MISC"])
-
+            idx = line['idx']
+            if idx in sentence_keys:
+                correct_answer = 0
                 org_correct = 0
                 per_correct = 0
                 loc_correct = 0
                 misc_correct = 0
 
-                predict_length = 0
-                answer_length = len(answer["ORG"]) + len(answer["LOC"]) + len(answer["PER"]) + len(answer["MISC"])
-                correct_answer = 0
+                answer = line["answer"]
+                predict = line["output"]
+
+                # print(answer)
+                # print(predcit)
+
+                # assert answer_line["text"] == line["text"]
+
+                # print(predcit)
+                if predict != {}:
+                    print(predict)
+                    # print(answer)
+                    org_predict = len(predict["ORG"]) if predict["ORG"] != [''] else 0
+                    loc_predict = len(predict["LOC"]) if predict["LOC"] != [''] else 0
+                    per_predict = len(predict["PER"]) if predict["PER"] != [''] else 0
+                    misc_predict = len(predict["MISC"]) if predict["MISC"] != [''] else 0
+
+                    org_answer = len(answer["ORG"])
+                    loc_answer = len(answer["LOC"])
+                    per_answer = len(answer["PER"])
+                    misc_answer = len(answer["MISC"])
+
+                    org_correct = self._intersection_length(predict["ORG"], answer["ORG"])
+                    per_correct = self._intersection_length(predict["PER"], answer["PER"])
+                    loc_correct = self._intersection_length(predict["LOC"], answer["LOC"])
+                    misc_correct = self._intersection_length(predict["MISC"], answer["MISC"])
+
+                    predict_length = org_predict + loc_predict + per_predict + misc_predict
+                    answer_length = org_answer + loc_answer + per_answer + misc_answer
+                    correct_answer = org_correct + per_correct + loc_correct + misc_correct
+
+                    # print("predict_length", loc_predict)
+                    # print("answer_length", loc_answer)
+                    # print("correct_answer", correct_answer)
+
+                else:
+                    org_predict = 0
+                    loc_predict = 0
+                    per_predict = 0
+                    misc_predict = 0
+
+                    org_answer = len(answer["ORG"])
+                    loc_answer = len(answer["LOC"])
+                    per_answer = len(answer["PER"])
+                    misc_answer = len(answer["MISC"])
+
+                    org_correct = 0
+                    per_correct = 0
+                    loc_correct = 0
+                    misc_correct = 0
+
+                    predict_length = 0
+                    answer_length = len(answer["ORG"]) + len(answer["LOC"]) + len(answer["PER"]) + len(answer["MISC"])
+                    correct_answer = 0
 
             rec = correct_answer / answer_length if answer_length > 0 else 0
             pre = correct_answer / predict_length if predict_length > 0 else 0
@@ -750,7 +746,7 @@ class NerDealing():
         return gpt_score_lst
 
     def compare_plot(self):
-        gpt_score_lst = self.gpt_plot
+        gpt_score_lst = self.gpt_plot()
         human_score_lst = self.huamn_plot()
 
         # Data for the first plot

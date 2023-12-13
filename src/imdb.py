@@ -10,15 +10,14 @@ from datasets import load_dataset
 import matplotlib.pyplot as plt
 
 
-
 class ImdbDealing():
-    def init(self):
-        self.input_file_path = "../datasets/imdb/"
-        self.csv_file_path = "../datasets/imdb/imdb.csv"
-        self.data_file_path = "../datasets/imdb/imdb_data.json"
-        self.json_file_path = "../datasets/imdb/imdb.json"
-        self.jsonl_file_path = "../datasets/imdb/imdb.jsonl"
-        self.survey_data = "../datasets/survey_data/imdb_0811.csv"
+    def __init__(self):
+        self.input_file_path = "../master_project/datasets/imdb/"
+        self.csv_file_path = "../master_project/datasets/imdb/imdb.csv"
+        self.data_file_path = "../master_project/datasets/imdb/imdb.json"
+        self.json_file_path = "../master_project/datasets/imdb/imdb_output.json"
+        self.jsonl_file_path = "../master_project/datasets/imdb/imdb.jsonl"
+        self.survey_file_path = "../master_project/datasets/survey_data/imdb_0811.csv"
         self.REPLACE_WITH_SPACE = re.compile("(<br\s*/><br\s*/>)|(\-)|(\/)")
         self.NO_SPACE = ""
         self.SPACE = " "
@@ -152,25 +151,98 @@ class ImdbDealing():
     def _gpt_score(self):
         # 0 & A negative
         # 1 & B positive
-        correct = 0
-        total = 0
+        correct_lst = [0, 0, 0, 0, 0]
+        negative_lst = [0, 0, 0, 0, 0]
+        positive_lst = [0, 0, 0, 0, 0]
+        total_lst = [0, 0, 0, 0, 0]
+        diff_lst = [0, 0, 0, 0, 0]
+        question_lst = []
+        question_rate_dict, human_score, human_sum, valid_column = self._score_calculate()
+
         with jsonlines.open(self.jsonl_file_path, 'r') as reader:
             for line in reader:
-                total += 1
-                predict = '0' if line['output'] == 'A' else '1'
-                answer = str(line['answer'])
+                question_name = 'Question' + line['idx']
+                if question_name != 'Question50':
+                    if question_name in question_rate_dict["1"] and question_name in valid_column:
+                        question_lst.append(question_name)
+                        total_lst[0] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
+                        if predict == '0':
+                            negative_lst[0] += 1
+                        else:
+                            positive_lst[0] += 1
 
-                if answer == predict:
-                    correct += 1
-                else:
-                    correct = correct
+                        if answer == predict:
+                            correct_lst[0] += 1
+                        else:
+                            diff_lst[0] += 1
 
-        acc = correct / total
+                    elif question_name in question_rate_dict["2"] and question_name in valid_column:
+                        question_lst.append(question_name)
+                        total_lst[1] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
+                        if predict == '0':
+                            negative_lst[1] += 1
+                        else:
+                            positive_lst[1] += 1
 
-        print("chatgpt score is", acc)
+                        if answer == predict:
+                            correct_lst[1] += 1
+                        else:
+                            diff_lst[1] += 1
+
+                    elif question_name in question_rate_dict["3"] and question_name in valid_column:
+                        question_lst.append(question_name)
+                        total_lst[2] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
+                        if predict == '0':
+                            negative_lst[2] += 1
+                        else:
+                            positive_lst[2] += 1
+
+                        if answer == predict:
+                            correct_lst[2] += 1
+                        else:
+                            diff_lst[2] += 1
+
+                    elif question_name in question_rate_dict["4"] and question_name in valid_column:
+                        question_lst.append(question_name)
+                        total_lst[3] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
+                        if predict == '0':
+                            negative_lst[3] += 1
+                        else:
+                            positive_lst[3] += 1
+
+                        if answer == predict:
+                            correct_lst[3] += 1
+                        else:
+                            diff_lst[3] += 1
+
+                    elif question_name in question_rate_dict["5"] and question_name in valid_column:
+                        question_lst.append(question_name)
+                        total_lst[4] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
+                        if predict == '0':
+                            negative_lst[4] += 1
+                        else:
+                            positive_lst[4] += 1
+
+                        if answer == predict:
+                            correct_lst[4] += 1
+                        else:
+                            diff_lst[4] += 1
+
+        # acc = np.sum(correct_lst) / np.sum(total_lst)
+        return negative_lst, positive_lst, correct_lst, diff_lst
 
     def _score_calculate(self):
-        df = pd.read_csv(self.survey_data)
+        df = pd.read_csv(self.survey_file_path)
 
         column_names = df.columns
         valid_data = df.iloc[3:]
@@ -190,40 +262,42 @@ class ImdbDealing():
         question_dict = {}
         for i in range(length):
             column_name = f"Question{i}"
-            column_content = question_data[column_name]
+            if column_name != 'Question50':
+                column_content = question_data[column_name]
 
-            for value in column_content:
-                answer = value
-                if not pd.isna(answer):
-                    question_dict[column_name] = output_map[answer]
+                for value in column_content:
+                    answer = value
+                    if not pd.isna(answer):
+                        question_dict[column_name] = output_map[answer]
 
         question_avg_dict = {}
         for i in range(length):
             column_name = f"Question{i}"
             column_content = question_data[column_name]
             question_avg_dict[column_name] = []
-
-            for value in column_content:
-                answer = value
-                if not pd.isna(answer):
-                    question_avg_dict[column_name].append(output_map[answer])
+            if column_name != 'Question50':
+                for value in column_content:
+                    answer = value
+                    if not pd.isna(answer):
+                        question_avg_dict[column_name].append(output_map[answer])
 
         for key in question_avg_dict.keys():
             question_avg_dict[key] = np.mean(question_avg_dict[key]) if question_avg_dict[key] != [] else 0
 
-        question_rate_dict = {"1": [], "2": [], "3": [], "4": [], "5": []}
+        valid_column = list(question_dict.keys())
 
+        question_rate_dict = {"1": [], "2": [], "3": [], "4": [], "5": []}
         for question in list(question_avg_dict.keys()):
             correct_rate = question_avg_dict[question]
-            if 0 <= correct_rate < 0.126:
+            if 0 <= correct_rate < 0.125:
                 question_rate_dict["1"].append(question)
-            elif 0.126 <= correct_rate < 0.376:
+            elif 0.125 <= correct_rate < 0.375:
                 question_rate_dict["2"].append(question)
-            elif 0.376 <= correct_rate < 0.626:
+            elif 0.375 <= correct_rate < 0.625:
                 question_rate_dict["3"].append(question)
-            elif 0.626 <= correct_rate < 0.876:
+            elif 0.625 <= correct_rate < 0.875:
                 question_rate_dict["4"].append(question)
-            elif 0.876 <= correct_rate < 1:
+            elif 0.875 <= correct_rate <= 1:
                 question_rate_dict["5"].append(question)
 
         human_score = 0
@@ -239,11 +313,33 @@ class ImdbDealing():
                 human_score += 1
 
         print("human score is", human_score / human_sum)
-        self._gpt_score()
-        return question_rate_dict
+        return question_rate_dict, human_score, human_sum, valid_column
+
+    def get_gptscore(self):
+        question_rate_dict, human_score, human_sum, valid_column = self._score_calculate()
+        correct = 0
+        total = 0
+        with jsonlines.open(self.jsonl_file_path, 'r') as reader:
+            for line in reader:
+                question_name = "Question" + line['idx']
+                if question_name != 'Question50':
+                    if question_name in valid_column:
+                        total += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
+
+                        if answer == predict:
+                            correct += 1
+                        else:
+                            correct = correct
+
+        acc = correct / total
+
+        print("gpt score is", acc)
+        return correct, total
 
     def plot_result(self):
-        question_rate_dict = self._score_calculate()
+        question_rate_dict, human_score, human_sum, valid_column = self._score_calculate()
 
         correct_lst = [0, 0, 0, 0, 0]
         total_lst = [0, 0, 0, 0, 0]
@@ -252,55 +348,56 @@ class ImdbDealing():
         with jsonlines.open(self.jsonl_file_path, 'r') as reader:
             for line in reader:
                 question_name = 'Question' + line['idx']
-                if question_name in question_rate_dict["1"]:
-                    total_lst[0] += 1
-                    predict = '0' if line['output'] == 'A' else '1'
-                    answer = str(line['answer'])
+                if question_name != 'Question50':
+                    if question_name in question_rate_dict["1"] and question_name in valid_column:
+                        total_lst[0] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
 
-                    if answer == predict:
-                        correct_lst[0] += 1
-                    else:
-                        diff_lst[0] += 1
+                        if answer == predict:
+                            correct_lst[0] += 1
+                        else:
+                            diff_lst[0] += 1
 
-                elif question_name in question_rate_dict["2"]:
-                    total_lst[1] += 1
-                    predict = '0' if line['output'] == 'A' else '1'
-                    answer = str(line['answer'])
+                    elif question_name in question_rate_dict["2"] and question_name in valid_column:
+                        total_lst[1] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
 
-                    if answer == predict:
-                        correct_lst[1] += 1
-                    else:
-                        diff_lst[1] += 1
+                        if answer == predict:
+                            correct_lst[1] += 1
+                        else:
+                            diff_lst[1] += 1
 
-                elif question_name in question_rate_dict["3"]:
-                    total_lst[2] += 1
-                    predict = '0' if line['output'] == 'A' else '1'
-                    answer = str(line['answer'])
+                    elif question_name in question_rate_dict["3"] and question_name in valid_column:
+                        total_lst[2] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
 
-                    if answer == predict:
-                        correct_lst[2] += 1
-                    else:
-                        diff_lst[2] += 1
+                        if answer == predict:
+                            correct_lst[2] += 1
+                        else:
+                            diff_lst[2] += 1
 
-                elif question_name in question_rate_dict["4"]:
-                    total_lst[3] += 1
-                    predict = '0' if line['output'] == 'A' else '1'
-                    answer = str(line['answer'])
+                    elif question_name in question_rate_dict["4"] and question_name in valid_column:
+                        total_lst[3] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
 
-                    if answer == predict:
-                        correct_lst[3] += 1
-                    else:
-                        diff_lst[3] += 1
+                        if answer == predict:
+                            correct_lst[3] += 1
+                        else:
+                            diff_lst[3] += 1
 
-                elif question_name in question_rate_dict["5"]:
-                    total_lst[4] += 1
-                    predict = '0' if line['output'] == 'A' else '1'
-                    answer = str(line['answer'])
+                    elif question_name in question_rate_dict["5"] and question_name in valid_column:
+                        total_lst[4] += 1
+                        predict = '0' if line['output'] == 'A' else '1'
+                        answer = str(line['answer'])
 
-                    if answer == predict:
-                        correct_lst[4] += 1
-                    else:
-                        diff_lst[4] += 1
+                        if answer == predict:
+                            correct_lst[4] += 1
+                        else:
+                            diff_lst[4] += 1
 
         title_lst = ["[0, 0.125]", "[0.125, 0.375]", "[0.375, 0.625]", "[0.625, 0.875]", "[0.875, 1]"]
         for i in range(4):
@@ -312,6 +409,84 @@ class ImdbDealing():
             plt.ylabel('Number')
             plt.title(f'Human Average in {title_lst[i]}')
             plt.show()
+
+    def value_plot(self):
+        negative_lst, positive_lst, correct_lst, diff_lst = self._gpt_score()
+        x_labels = ["[0, 0.125]", "[0.125, 0.375]", "[0.375, 0.625]", "[0.625, 0.875]", "[0.875, 1]"]
+
+        barWidth = 0.25
+
+        y1 = negative_lst
+        y2 = positive_lst
+
+        r1 = np.arange(len(y1))
+        r2 = [x + barWidth for x in r1]
+
+        plt.bar(r1, y1, width=barWidth, label='Negative Number')
+        plt.bar(r2, y2, width=barWidth, label='Positive Number')
+
+        plt.legend()
+        plt.xlabel('Human Average Value', fontweight='bold')
+        plt.ylabel('ChatGPT Value')
+        plt.title('Comparison')
+        plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
+
+        plt.tight_layout()
+
+        plt.show()
+
+    def acc_plot(self):
+        negative_lst, positive_lst, correct_lst, diff_lst = self._gpt_score()
+        x_labels = ["[0, 0.125]", "[0.125, 0.375]", "[0.375, 0.625]", "[0.625, 0.875]", "[0.875, 1]"]
+
+        barWidth = 0.25
+
+        y1 = correct_lst
+        y2 = diff_lst
+        print("correct_lst", correct_lst)
+        print("diff_lst", diff_lst)
+
+        r1 = np.arange(len(y1))
+        r2 = [x + barWidth for x in r1]
+
+        plt.bar(r1, y1, width=barWidth, label='Correct Number')
+        plt.bar(r2, y2, width=barWidth, label='Incorrect Number')
+
+        plt.legend()
+        plt.xlabel('Human Average Value', fontweight='bold')
+        plt.ylabel('ChatGPT Value')
+        plt.title('Comparison')
+        plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
+
+        plt.tight_layout()
+
+        plt.show()
+
+    def compare_plot(self):
+        gpt_correct, gpt_total = self.get_gptscore()
+        question_rate_dict, human_score, human_sum, valid_column = self._score_calculate()
+        x_labels = ["Correct Number", "Incorrect Number"]
+
+        barWidth = 0.25
+
+        y1 = [human_score, human_sum - human_score]
+        y2 = [gpt_correct, (gpt_total - gpt_correct)]
+
+        r1 = np.arange(len(y1))
+        r2 = [x + barWidth for x in r1]
+
+        plt.bar(r1, y1, width=barWidth, label='Human')
+        plt.bar(r2, y2, width=barWidth, label='ChatGPT')
+
+        plt.legend()
+        plt.xlabel('Type', fontweight='bold')
+        plt.ylabel('Number')
+        plt.title('Crowdsourcing VS ChatGPT')
+        plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
+
+        plt.tight_layout()
+
+        plt.show()
 
 
 

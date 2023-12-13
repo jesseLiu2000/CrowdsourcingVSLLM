@@ -11,17 +11,18 @@ import matplotlib.pyplot as plt
 
 class PersuasivenessDealing():
     def __init__(self):
-        self.input_file_path = "../datasets/persuasiveness/"
-        self.csv_file_path = "../datasets/persuasiveness/persuasiveness.csv"
-        self.json_file_path = "../datasets/persuasiveness/persuasiveness.json"
-        self.jsonl_file_path = "../datasets/persuasiveness/persuasiveness.jsonl"
-        self.survey_data = "../datasets/survey_data/persuasiveness_0811.csv"
+        self.file_dict = "../master_project/datasets/persuasiveness"
+        self.input_file_path = "../master_project/datasets/persuasiveness/persuasiveness.json"
+        self.csv_file_path = "../master_project/datasets/persuasiveness/persuasiveness.csv"
+        self.json_file_path = "../master_project/datasets/persuasiveness/persuasiveness_output.json"
+        self.jsonl_file_path = "../master_project/datasets/persuasiveness/persuasiveness.jsonl"
+        self.survey_data = "../master_project/datasets/survey_data/persuasiveness_0811.csv"
         self.map_dict = {"Not Persuasive": 1, "Somewhat Persuasive": 2, "Persuasive": 3, "Very Persuasive": 4}
         self.choice_map_dict = {"A": 1, "B": 2, "C": 3, "D": 4}
 
-
+    @staticmethod
     def _chatgpt(prompt):
-        openai.api_key = "OPENAI KEY HERE"
+        openai.api_key = "YOUR OPENAI KEY HERE"
         while True:
             try:
 
@@ -34,11 +35,10 @@ class PersuasivenessDealing():
                     temperature=0
                 )
 
-                # for persuasive
                 while True:
                     output = completion.choices[0].message["content"]
                     if output in ['A', 'B', 'C', 'D']:
-                      break
+                        break
 
                 output = completion.choices[0].message["content"]
 
@@ -56,7 +56,7 @@ class PersuasivenessDealing():
         return output
 
     def chatgpt_output(self):
-        file_read = open(self.data_file_path, 'r')
+        file_read = open(self.input_file_path, 'r')
         json_file = json.load(file_read)
         shot = """
         Question: How persuasive is this essay?
@@ -83,17 +83,15 @@ class PersuasivenessDealing():
             prompt = shot + prefix + text + surfix
 
             output = self._chatgpt(prompt)
-            # print("output is", output)
 
             sentence_dict["idx"] = idx
             sentence_dict["output"] = output
-            # sentence_dict["answer"] = json_file["answer"]
             sentence_dict["text"] = text
             sentence_dict["prefix"] = prompt
 
             task_dict[idx] = sentence_dict
 
-            with jsonlines.open(self.jsonl_file_path,'a') as writer:
+            with jsonlines.open(self.jsonl_file_path, 'a') as writer:
                 writer.write(sentence_dict)
 
         with open(self.json_file_path, 'w') as fw:
@@ -112,8 +110,9 @@ class PersuasivenessDealing():
         question_data = filtered_data.iloc[:, start_position:end_position + 1]
 
         question_dict = {"Question36": [], "Question90": []}
+        invalid_question_name = []
         for i in range(1, 90):
-            if i not in [36]:
+            if i not in [36, 90]:
                 sum_lst = []
                 column_name_display = f"Question0{i}" if i in range(1, 10) else f"Question{i}"
                 column_name = f"Question{i}"
@@ -125,19 +124,23 @@ class PersuasivenessDealing():
                         num += 1
                         score = self.map_dict[answer]
                         sum_lst.append(score)
-                question_dict[column_name_display] = sum_lst
+                if not sum_lst:
+                    invalid_question_name.append(column_name)
+                else:
+                    question_dict[column_name_display] = sum_lst
 
         gather_keys = {}
         for key, value in question_dict.items():
             v = np.mean(value) if value != [] else 0
-            if v in gather_keys:
-                gather_keys[v].append(key) if key not in gather_keys[v] else gather_keys[v]
-            else:
-                gather_keys[v] = [key]
-        return gather_keys, question_dict
+            if key not in invalid_question_name:
+                if v in gather_keys:
+                    gather_keys[v].append(key) if key not in gather_keys[v] else gather_keys[v]
+                else:
+                    gather_keys[v] = [key]
+        return gather_keys, question_dict, invalid_question_name
 
     def cal_score(self):
-        gather_keys, question_dict = self._deal_survey()
+        gather_keys, question_dict, invalid_question_name = self._deal_survey()
         with open(self.json_file_path, 'r') as f_read:
             json_data = json.load(f_read)
 
@@ -226,6 +229,7 @@ class PersuasivenessDealing():
     def compare_plot(self):
         gpt_score_dict, question_dict, refurnised_dict = self.cal_score()
         keys = list(refurnised_dict.keys())
+        key_name = ''
 
         for key in sorted(keys):
             gpt_lst = refurnised_dict[key]
@@ -250,9 +254,3 @@ class PersuasivenessDealing():
             plt.ylabel('Number')
             plt.title(f'Human Average in {key_name}')
             plt.show()
-
-
-
-
-
-
