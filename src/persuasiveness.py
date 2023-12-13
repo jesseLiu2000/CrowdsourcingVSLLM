@@ -9,7 +9,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 
 
-class PersuasivenessDealing():
+class PersuasivenessDealing:
     def __init__(self):
         self.file_dict = "../master_project/datasets/persuasiveness"
         self.input_file_path = "../master_project/datasets/persuasiveness/persuasiveness.json"
@@ -209,7 +209,7 @@ class PersuasivenessDealing():
         plt.title('GPT')
         plt.show()
 
-        categories = ["Less Persuasiveness", "Persuasiveness", "Somewhat Persuasiveness", "Vary Persuasiveness"]
+        categories = ["Less Persuasiveness", "Somewhat Persuasiveness", "Persuasiveness", "Vary Persuasiveness"]
         feature1 = [10, 14, 47, 4]
         feature2 = [2, 0, 83, 5]
         bar_width = 0.25
@@ -217,13 +217,13 @@ class PersuasivenessDealing():
         plt.figure(figsize=(7, 7))
 
         plt.bar(x - bar_width / 2, feature1, width=bar_width, label='Crowdsourcing')
-        plt.bar(x + bar_width / 2, feature2, width=bar_width, label='ChatGPT')
+        plt.bar(x + bar_width / 2, feature2, width=bar_width, label='GPT-3.5')
 
         plt.xticks(x, categories, rotation=15)
 
         plt.xlabel('Persuasiveness Type')
         plt.ylabel('Number')
-        plt.title('Crowdsourcing VS ChatGPT')
+        plt.title('Comparison of Crowdsourcing and GPT-3.5')
         plt.legend()
         plt.show()
 
@@ -276,16 +276,11 @@ class PersuasivenessDealing():
 
         plt.legend()
         plt.xlabel('Human Average Value', fontweight='bold')
-        plt.ylabel('ChatGPT Value')
-        plt.title('Comparison')
+        plt.ylabel('Number')
+        plt.title('Comparison of Crowdsourcing and GPT-3.5')
         plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
 
         plt.tight_layout()
 
         plt.show()
 
-
-if __name__ == '__main__':
-    build_class = PersuasivenessDealing()
-    build_class.plot()
-    build_class.compare_plot()

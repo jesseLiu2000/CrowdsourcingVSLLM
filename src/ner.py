@@ -10,7 +10,7 @@ from datasets import load_dataset
 import matplotlib.pyplot as plt
 
 
-class NerDealing():
+class NerDealing:
     def __init__(self):
         self.file_dict = "../master_project/datasets/ner"
         self.input_file_path = "../master_project/datasets/ner/ner.json"
@@ -762,16 +762,16 @@ class NerDealing():
 
         # Create a bar plot for GPT data
 
-        plt.bar(categories_gpt, score_lst, width=bar_width, label='Human')
+        plt.bar(categories_gpt, score_lst, width=bar_width, label='Crowdsourcing')
         # Adjust the positions for the bars of mean data
         categories_mean_adjusted = [x + bar_width for x in range(len(categories_mean))]
 
-        plt.bar(categories_mean_adjusted, gpt_score_lst, width=bar_width, label='ChatGPT')
+        plt.bar(categories_mean_adjusted, gpt_score_lst, width=bar_width, label='GPT-3.5')
 
         # Set labels and title
-        plt.xlabel('Values')
+        plt.xlabel('Entity Types')
         plt.ylabel('F1 Score')
-        plt.title('NER Comparison')
+        plt.title('Comparison of Crowdsourcing and GPT-3.5')
         plt.legend()  # Add legend to differentiate between GPT and Mean
 
         # Show the plot

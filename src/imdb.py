@@ -10,7 +10,7 @@ from datasets import load_dataset
 import matplotlib.pyplot as plt
 
 
-class ImdbDealing():
+class ImdbDealing:
     def __init__(self):
         self.input_file_path = "../master_project/datasets/imdb/"
         self.csv_file_path = "../master_project/datasets/imdb/imdb.csv"
@@ -72,7 +72,7 @@ class ImdbDealing():
         with open(self.data_file_path, 'w') as json_file:
             json.dump(full_dict, json_file, indent=4)
 
-    def _chatgpt(prompt):
+    def _chatgpt(self, prompt):
         openai.api_key = "OPENAI KEY HERE"
         while True:
             try:
@@ -405,9 +405,9 @@ class ImdbDealing():
             values = [correct_lst[i], total_lst[i] - correct_lst[i]]
 
             plt.bar(categories, values, width=0.5)
-            plt.xlabel('ChatGPT Type')
+            plt.xlabel('GPT-3.5 Type')
             plt.ylabel('Number')
-            plt.title(f'Human Average in {title_lst[i]}')
+            plt.title(f'Crowdsourcing Average in {title_lst[i]}')
             plt.show()
 
     def value_plot(self):
@@ -426,8 +426,8 @@ class ImdbDealing():
         plt.bar(r2, y2, width=barWidth, label='Positive Number')
 
         plt.legend()
-        plt.xlabel('Human Average Value', fontweight='bold')
-        plt.ylabel('ChatGPT Value')
+        plt.xlabel('Crowdsourcing Average Value')
+        plt.ylabel('GPT-3.5 Value')
         plt.title('Comparison')
         plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
 
@@ -453,9 +453,9 @@ class ImdbDealing():
         plt.bar(r2, y2, width=barWidth, label='Incorrect Number')
 
         plt.legend()
-        plt.xlabel('Human Average Value', fontweight='bold')
-        plt.ylabel('ChatGPT Value')
-        plt.title('Comparison')
+        plt.xlabel('Crowdsourcing Average Value')
+        plt.ylabel('GPT-3.5 Value')
+        plt.title('Comparison of Crowdsourcing and GPT-3.5')
         plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
 
         plt.tight_layout()
@@ -475,13 +475,13 @@ class ImdbDealing():
         r1 = np.arange(len(y1))
         r2 = [x + barWidth for x in r1]
 
-        plt.bar(r1, y1, width=barWidth, label='Human')
-        plt.bar(r2, y2, width=barWidth, label='ChatGPT')
+        plt.bar(r1, y1, width=barWidth, label='Crowdsourcing')
+        plt.bar(r2, y2, width=barWidth, label='GPT-3.5')
 
         plt.legend()
-        plt.xlabel('Type', fontweight='bold')
+        plt.xlabel('Types')
         plt.ylabel('Number')
-        plt.title('Crowdsourcing VS ChatGPT')
+        plt.title('Comparison of Crowdsourcing and GPT-3.5')
         plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
 
         plt.tight_layout()

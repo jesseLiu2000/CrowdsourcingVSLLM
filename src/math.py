@@ -9,7 +9,7 @@ from datasets import load_dataset
 import matplotlib.pyplot as plt
 
 
-class MathDealing():
+class MathDealing:
     def __init__(self):
         self.file_dict = "../master_project/datasets/math/"
         self.data_file_path = "../master_project/datasets/math/math.json"
@@ -181,7 +181,7 @@ class MathDealing():
                     else:
                         incorrect += 1
 
-        print("GPT Accuracy is", correct / total)
+        print("GPT-3.5 Accuracy is", correct / total)
         return total, incorrect
 
     def human_score(self):
@@ -248,9 +248,9 @@ class MathDealing():
             values = [correct, incorrect]
 
             plt.bar(categories, values, width=0.5)
-            plt.xlabel('Values')
+            plt.xlabel('Types')
             plt.ylabel('Number')
-            plt.title(f'GPT(when human in {title_lst[i - 1]}')
+            plt.title(f'GPT-3.5(when human in {title_lst[i - 1]}')
             plt.show()
 
     def compare_plot(self):
@@ -264,13 +264,13 @@ class MathDealing():
 
         bar_width = 0.35
 
-        plt.bar(categories_human, values_human, width=bar_width, label='Human')
+        plt.bar(categories_human, values_human, width=bar_width, label='Crowdsourcing')
         categories_gpt_adjusted = [x + bar_width for x in range(len(categories_gpt))]
-        plt.bar(categories_gpt_adjusted, values_gpt, width=bar_width, label='ChatGPT')
+        plt.bar(categories_gpt_adjusted, values_gpt, width=bar_width, label='GPT-3.5')
 
-        plt.xlabel('Values')
+        plt.xlabel('Types')
         plt.ylabel('Number')
-        plt.title('Comparison of Human and GPT')
+        plt.title('Comparison of Crowdsourcing and GPT-3.5')
         plt.legend()
         plt.show()
 
