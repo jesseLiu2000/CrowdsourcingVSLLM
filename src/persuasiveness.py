@@ -183,7 +183,7 @@ class PersuasivenessDealing():
         question_values = list(question_dict.values())
         human_lst = []
         for i in question_values:
-            if i != []:
+            if i:
                 human_lst.extend(i)
 
         human_dict = dict(Counter(human_lst))
@@ -212,8 +212,9 @@ class PersuasivenessDealing():
         categories = ["Less Persuasiveness", "Persuasiveness", "Somewhat Persuasiveness", "Vary Persuasiveness"]
         feature1 = [10, 14, 47, 4]
         feature2 = [2, 0, 83, 5]
-        bar_width = 0.35
+        bar_width = 0.25
         x = np.arange(len(categories))
+        plt.figure(figsize=(7, 7))
 
         plt.bar(x - bar_width / 2, feature1, width=bar_width, label='Crowdsourcing')
         plt.bar(x + bar_width / 2, feature2, width=bar_width, label='ChatGPT')
@@ -230,16 +231,18 @@ class PersuasivenessDealing():
         gpt_score_dict, question_dict, refurnised_dict = self.cal_score()
         keys = list(refurnised_dict.keys())
         key_name = ''
+        y_total = []
 
-        for key in sorted(keys):
+        for key in keys:
             gpt_lst = refurnised_dict[key]
             value_counts = dict(Counter(gpt_lst))
-            x_label = [0, 1, 2, 3, 4]
-            # print(value_counts)
-            y_label = [0, 0, 0, 0, 0]
+            x_label = [1, 2, 3, 4]
+            y_label = [0, 0, 0, 0]
             for got_key in value_counts.keys():
-                y_label[int(got_key)] = value_counts[got_key]
-            # print(y_label)
+                y_label[int(got_key-1)] = value_counts[got_key]
+
+            y_total.append(y_label)
+
             if key == 1:
                 key_name = '[1, 1.5]'
             elif key == 2:
@@ -249,8 +252,40 @@ class PersuasivenessDealing():
             elif key == 4:
                 key_name = '[3.5, 4.1]'
 
-            plt.bar(x_label, y_label)
-            plt.xlabel('GPT Values')
-            plt.ylabel('Number')
-            plt.title(f'Human Average in {key_name}')
-            plt.show()
+            # plt.bar(x_label, y_label)
+            # plt.xlabel('GPT Values')
+            # plt.ylabel('Number')
+            # plt.title(f'Human Average in {key_name}')
+            # plt.show()
+
+        x_labels = ["[1, 1.5]", "[1.5, 2.5]", "[2.5, 3.5]", "[3.5, 4.1]"]
+
+        barWidth = 0.2
+
+        y1, y2, y3, y4 = [sl[0] for sl in y_total], [sl[1] for sl in y_total], [sl[2] for sl in y_total], [sl[3] for sl in y_total]
+
+        r1 = np.arange(len(y1))
+        r2 = [x + barWidth for x in r1]
+        r3 = [x + barWidth for x in r2]
+        r4 = [x + barWidth for x in r3]
+
+        plt.bar(r1, y1, width=barWidth, label='Less Persuasiveness')
+        plt.bar(r2, y2, width=barWidth, label='Somewhat Persuasiveness')
+        plt.bar(r3, y3, width=barWidth, label='Persuasiveness')
+        plt.bar(r4, y4, width=barWidth, label='Vary Persuasiveness')
+
+        plt.legend()
+        plt.xlabel('Human Average Value', fontweight='bold')
+        plt.ylabel('ChatGPT Value')
+        plt.title('Comparison')
+        plt.xticks([r + barWidth for r in range(len(y1))], x_labels)
+
+        plt.tight_layout()
+
+        plt.show()
+
+
+if __name__ == '__main__':
+    build_class = PersuasivenessDealing()
+    build_class.plot()
+    build_class.compare_plot()
