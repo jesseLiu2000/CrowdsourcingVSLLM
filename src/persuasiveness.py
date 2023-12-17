@@ -209,7 +209,7 @@ class PersuasivenessDealing:
         plt.title('GPT')
         plt.show()
 
-        categories = ["Less Persuasiveness", "Somewhat Persuasiveness", "Persuasiveness", "Vary Persuasiveness"]
+        categories = ["Less Persuasiveness", "Somewhat Persuasiveness", "Persuasiveness", "Very Persuasiveness"]
         feature1 = [10, 14, 47, 4]
         feature2 = [2, 0, 83, 5]
         bar_width = 0.25
@@ -272,7 +272,7 @@ class PersuasivenessDealing:
         plt.bar(r1, y1, width=barWidth, label='Less Persuasiveness')
         plt.bar(r2, y2, width=barWidth, label='Somewhat Persuasiveness')
         plt.bar(r3, y3, width=barWidth, label='Persuasiveness')
-        plt.bar(r4, y4, width=barWidth, label='Vary Persuasiveness')
+        plt.bar(r4, y4, width=barWidth, label='Very Persuasiveness')
 
         plt.legend()
         plt.xlabel('Human Average Value', fontweight='bold')
